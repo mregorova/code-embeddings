@@ -14,6 +14,18 @@ My NLP pet-project, which is used for code embeddings research in programmimg.
 
 # Получение эмбеддингов и анализ качества
 Написав функцию embed для извлечения эмбеддингов, получаем соответствующие вектора в формате torch. Это потребуется для применения метрик сравнения, о которых будет рассказано далее. 
+```
+def embed(texts: [str], batch_size: int, model, tokenizer: transformers.PreTrainedTokenizerFast, max_len: int = 500) -> [torch.Tensor]:
+  embeddings = []
+  for i in range(0, len(texts), batch_size):
+    batch = texts[i:i+batch_size]
+    encoded = tokenizer(batch, padding=True, return_tensors='pt')
+    with torch.no_grad():
+      outputs = model(input_ids=encoded.input_ids[:,:max_len], attention_mask=encoded.attention_mask[:,:max_len])
+    embeddings.append(outputs.last_hidden_state[:,0,:])
+  
+  return torch.cat(embeddings)
+```
 Итак, возьмём случайным образом некоторую пару и получим эмбеддинги кода. Как понять, что модель действительно выделяет оттуда смысл?
 Для решения этой задачи был использован подход, похожий на принцип работы сиамских сетей - в качестве меры похожести мы используем косинусное расстояние между эмбеддингами кода. При помощи написания функции cos_difference со встроенными инструментами pytorch получим расстояния 0.009 ± 0.001 в рамках одной и той же задачи и 0.013 ± 0.001 для двух разных. 
 Это позволяет сделать вывод, что модель действительно понимает смысл обрабатываемого кода, однако в силу несущественного различия между одинаковыми и разными заданиями исследуем модель дальше.
